@@ -2,7 +2,7 @@
 
 Record web audio to an MP3 in mono or stereo.
 
-[Live demo](https://erictetz.github.io/Mp3Recorder/)
+[Live demo.](https://erictetz.github.io/Mp3Recorder/)
 
 Supports all modern browsers.
 
@@ -26,7 +26,7 @@ Supports all modern browsers.
 The code is in three parts:
 
 * **Mp3RecorderWorklet.js**: Tiny AudioWorkletProcessor that feeds raw audio to the worker.
-* **Mp3RecorderWorker.js**: Encodes audio in real time using LAME (inline in the file). We use a separate worker to avoid dropping frames during encoding (AudioWorkletProcessor has hard coded 128 byte buffer).
+* **Mp3RecorderWorker.js**: Encodes audio in real time (using [lamejs](https://github.com/zhuker/lamejs), inline in the file). We use a separate worker to avoid dropping frames during encoding (AudioWorkletProcessor has hard coded 128 byte buffer).
 * **Mp3Recorder.mjs**: Coordinates worker threads and provides an API for them. This is what you use in your code. The other files are necessary evils because of the way web threading works.
 
 `Mp3Recorder(workerPath, workletPath)` :
