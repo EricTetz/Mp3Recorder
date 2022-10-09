@@ -7,7 +7,7 @@ let encoded = [];
 
 onmessage = async (e) => {
     if (e.data.message === 'receivedChannelData') {
-        for (let i=0; i < e.data.channelData.length; ++i) {
+        for (let i=0; i < currentConfig.channels; ++i) {
             channelData[i].push(floatTo16BitPCM(e.data.channelData[i]));
         }
 
@@ -50,11 +50,11 @@ function floatTo16BitPCM(data){
     return output;
 }
 
-function concatenateArrays(channelData) {
-    const totalLength = channelData.reduce((acc, elem) => acc + elem.length, 0)
-    const result = new Float32Array(totalLength);
+function combineChannelData(chunks) {
+    const length = chunks.reduce((acc, elem) => acc + elem.length, 0)
+    const result = new Int16Array(length);
     let offset = 0;
-    for (let chunk of channelData) {
+    for (let chunk of chunks) {
         result.set(chunk, offset);
         offset += chunk.length;
     }
@@ -66,7 +66,7 @@ function encodeAvailableData() {
         return
     }
 
-    let encoderInput = channelData.map(chunkList => concatenateArrays(chunkList));
+    let encoderInput = channelData.map(combineChannelData);
     channelData = [[],[]];
 
     let mp3Buf = mp3Encoder.encodeBuffer(encoderInput[0], currentConfig.channels > 1 ? encoderInput[1] : null);
