@@ -1,0 +1,124 @@
+<html>
+    <head>
+        <title>Mp3Recorder demo</title>
+        <script type='module'>
+            import { Mp3Recorder } from './src/Mp3Recorder.mjs';
+
+            let recorder = new Mp3Recorder('src/Mp3RecorderWorker.js', 'src/Mp3RecorderWorklet.js');
+            let gain;
+            let pan;
+
+            function pushFile(uri, name) {
+                let a = document.createElement('a');
+                a.href = uri;
+                a.download = name;
+                a.click();
+            }
+
+            function show(e) {
+                e.style.display = 'inline-block';
+            }
+
+            function hide(e) {
+                e.style.display = 'none';
+            }
+
+
+            // we'll to pan a signal left to right to demonstrate stereo recording
+            function getAudioInput(channels) {
+                if (gain == null) {
+                    let audio = new AudioContext();
+
+                    function createLfo(target, frequency, gain) {
+                        const lfo = new OscillatorNode(audio, {frequency, type: 'triangle'});
+                        const lfoGain = new GainNode(audio, {gain});
+                        lfo.connect(lfoGain);
+                        lfoGain.connect(target);
+                        lfo.start();
+                    }
+
+                    let oscillator = new OscillatorNode(audio, {frequency: 110,  type: 'sawtooth'});
+                    gain = new GainNode(audio, { gain: 0 });
+                    let merger = audio.createChannelMerger(2);
+                    pan = audio.createStereoPanner();
+
+                    createLfo(oscillator.frequency, .1, 100);
+                    createLfo(pan.pan, .2, 1);
+
+                    oscillator.connect(gain);
+                    gain.connect(merger, 0, 0);
+                    merger.connect(pan);
+                    pan.connect(audio.destination);
+
+                    oscillator.start();
+                }
+                return channels === 1 ? gain : pan;
+            }
+
+            function soundOn() {
+                gain.gain.value = 1;
+            }
+
+            function soundOff() {
+                gain.gain.value = 0;
+            }
+            
+            async function start(channels) {
+                let recorderInput = getAudioInput(channels);
+
+                await recorder.configure(recorderInput, channels, 196);
+
+                soundOn();
+                recorder.start();
+
+                hide(recordMonoButton);
+                hide(recordStereoButton);
+                show(pauseButton);
+                show(stopButton);
+            }
+
+            function pause() {
+                recorder.pause();
+
+                hide(pauseButton);
+                show(resumeButton);
+            }
+
+            function resume() {
+                recorder.resume();
+
+                hide(resumeButton);
+                show(pauseButton);
+            }
+
+            async function stop() {
+                soundOff();
+                let mp3 = await recorder.stop();
+                let uri = URL.createObjectURL(mp3);
+                pushFile(uri, filename.value || 'recording.mp3');
+
+                hide(stopButton);
+                hide(pauseButton);
+                hide(resumeButton);
+                show(recordMonoButton);
+                show(recordStereoButton);
+            }
+
+            recordMonoButton.onclick = () => start(1);
+            recordStereoButton.onclick = () => start(2);
+            pauseButton.onclick = () => pause();
+            resumeButton.onclick = () => resume();
+            stopButton.onclick = () => stop();
+        </script>
+    </head>
+
+    <body>
+        <p>Click to generate some audio and record it:<p>
+        Filename: <input id='filename' value='recording.mp3'>
+        <button id='recordMonoButton'>Record Mono</button>
+        <button id='recordStereoButton'>Record Stereo</button>
+        <button id='pauseButton' style='display: none'>Pause Recording</button>
+        <button id='resumeButton' style='display: none'>Resume Recording</button>
+        <button id='stopButton' style='display: none'>Stop</button>
+    </body>
+</html>
