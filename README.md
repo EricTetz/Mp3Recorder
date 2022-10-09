@@ -2,7 +2,7 @@
 
 Record web audio to an MP3 in mono or stereo.
 
-[Live demo]()
+[Live demo](https://erictetz.github.io/Mp3Recorder/)
 
 Supports all modern browsers.
 
