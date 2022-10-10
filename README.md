@@ -25,9 +25,9 @@ Supports all modern browsers.
 
 The code is in three parts:
 
-* **Mp3RecorderWorklet.js**: Tiny AudioWorkletProcessor that feeds raw audio to the worker.
-* **Mp3RecorderWorker.js**: Encodes audio in real time (using [lamejs](https://github.com/zhuker/lamejs), inline in the file). We use a separate worker to avoid dropping frames during encoding (AudioWorkletProcessor has hard coded 128 byte buffer).
-* **Mp3Recorder.mjs**: Coordinates worker threads and provides an API for them. This is what you use in your code. The other files are necessary evils because of the way web threading works.
+* **Mp3RecorderWorklet.js**: tiny AudioWorkletProcessor that feeds raw audio to the worker.
+* **Mp3RecorderWorker.js**: encodes audio in real time (using [lamejs](https://github.com/zhuker/lamejs), inline in the file). We use a separate worker to avoid dropping frames during encoding (AudioWorkletProcessor has hard coded 128 byte buffer).
+* **Mp3Recorder.mjs**: coordinates worker threads and provides an API for them. This is what you use in your code. The other files are necessary evils because of the way web threading works.
 
 `Mp3Recorder(workerPath, workletPath)` :
 
@@ -48,10 +48,10 @@ Pause recording.
 
 Resume recording after it's been paused.
 
+`async Mp3Recorder.getRecordedSize()`
+
+Return the number of bytes recorded so far.
+
 `async Mp3Recorder.stop()`
 
-* Returns a Promise of an audio/mp3 blob.
-
-## Known Issues
-
-I've found the encoded output to be glitchy at lower bit rates. Works great for me at 196, which is my desired target anyway.
+Stop recording and return the MP3 blob.
