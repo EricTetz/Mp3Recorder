@@ -40,6 +40,18 @@ The code is in three parts:
 * `channels`: 1 or 2 (mono or stereo)
 * `bitRate`: bit rate to encode at
 
+`async Mp3Recorder.pause()`
+
+Pause recording.
+
+`async Mp3Recorder.resume()`
+
+Resume recording after it's been paused.
+
 `async Mp3Recorder.stop()`
 
 * Returns a Promise of an audio/mp3 blob.
+
+## Known Issues
+
+I've found the encoded output to be glitchy at lower bit rates. Works great for me at 196, which is my desired target anyway.
