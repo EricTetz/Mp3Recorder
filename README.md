@@ -34,24 +34,28 @@ The code is in three parts:
 * `workerPath`: path to worker file (subject to vagaries of worker paths)
 * `workletPath`: path to worklet file (subject to vagaries of worklet paths)
 
-`async Mp3Recorder.configure(inputNode, channels, bitRate)`:
+`async configure(inputNode, channels, bitRate)`:
 
 * `inputNode`: the AudioNode whose output we'll record
 * `channels`: 1 or 2 (mono or stereo)
 * `bitRate`: bit rate to encode at
 
-`async Mp3Recorder.pause()`
+`start()`
+
+Start recording.
+
+`pause()`
 
 Pause recording.
 
-`async Mp3Recorder.resume()`
+` resume()`
 
 Resume recording after it's been paused.
 
-`async Mp3Recorder.getRecordedSize()`
+`async getRecordedSize()`
 
 Return the number of bytes recorded so far.
 
-`async Mp3Recorder.stop()`
+`async stop()`
 
 Stop recording and return the MP3 blob.
