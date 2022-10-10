@@ -1,75 +1,29 @@
 <html>
     <head>
         <title>Mp3Recorder demo</title>
+
         <script type='module'>
             import { Mp3Recorder } from './src/Mp3Recorder.mjs';
 
             let recorder = new Mp3Recorder('src/Mp3RecorderWorker.js', 'src/Mp3RecorderWorklet.js');
             let gain;
             let pan;
-
-            function pushFile(uri, name) {
-                let a = document.createElement('a');
-                a.href = uri;
-                a.download = name;
-                a.click();
-            }
-
-            function show(e) {
-                e.style.display = 'inline-block';
-            }
-
-            function hide(e) {
-                e.style.display = 'none';
-            }
-
-
-            // we'll to pan a signal left to right to demonstrate stereo recording
-            function getAudioInput(channels) {
-                if (gain == null) {
-                    let audio = new AudioContext();
-
-                    function createLfo(target, frequency, gain) {
-                        const lfo = new OscillatorNode(audio, {frequency, type: 'triangle'});
-                        const lfoGain = new GainNode(audio, {gain});
-                        lfo.connect(lfoGain);
-                        lfoGain.connect(target);
-                        lfo.start();
-                    }
-
-                    let oscillator = new OscillatorNode(audio, {frequency: 110,  type: 'sawtooth'});
-                    gain = new GainNode(audio, { gain: 0 });
-                    let merger = audio.createChannelMerger(2);
-                    pan = audio.createStereoPanner();
-
-                    createLfo(oscillator.frequency, .1, 100);
-                    createLfo(pan.pan, .2, 1);
-
-                    oscillator.connect(gain);
-                    gain.connect(merger, 0, 0);
-                    merger.connect(pan);
-                    pan.connect(audio.destination);
-
-                    oscillator.start();
-                }
-                return channels === 1 ? gain : pan;
-            }
-
-            function soundOn() {
-                gain.gain.value = 1;
-            }
-
-            function soundOff() {
-                gain.gain.value = 0;
-            }
+            let updateTimer;
             
             async function start(channels) {
+                let bitRate = Number(bitrate.value);
+                if (isNaN(bitRate)) {
+                    alert("bitrate must be a number");
+                    return;
+                }
+
                 let recorderInput = getAudioInput(channels);
-
-                await recorder.configure(recorderInput, channels, 196);
-
                 soundOn();
+
+                await recorder.configure(recorderInput, channels, bitRate);
                 recorder.start();
+
+                showRecordedSize();
 
                 hide(recordMonoButton);
                 hide(recordStereoButton);
@@ -91,8 +45,16 @@
                 show(pauseButton);
             }
 
+            async function showRecordedSize() {
+                let bytes = await recorder.getRecordedSize();
+                recordedSize.innerText = bytesToHumanReadable(bytes) + " recorded";
+                updateTimer = setTimeout(showRecordedSize, 100);
+            }
+
             async function stop() {
+                clearTimeout(updateTimer);
                 soundOff();
+
                 let mp3 = await recorder.stop();
                 let uri = URL.createObjectURL(mp3);
                 pushFile(uri, filename.value || 'recording.mp3');
@@ -104,6 +66,73 @@
                 show(recordStereoButton);
             }
 
+            // we'll to pan a signal left to right to demonstrate stereo recording
+            function getAudioInput(channels) {
+                if (gain == null) {
+                    let audio = new AudioContext();
+
+                    function createLfo(frequency, gain, ...targets) {
+                        const lfo = new OscillatorNode(audio, {frequency, type: 'triangle'});
+                        const lfoGain = new GainNode(audio, {gain});
+                        lfo.start();
+                        return lfo.connect(lfoGain);
+                    }
+
+                    let oscillator = new OscillatorNode(audio, {frequency: 110,  type: 'sawtooth'});
+                    gain = new GainNode(audio, { gain: 0 });
+                    let filter = new BiquadFilterNode(audio, {type: 'lowpass', Q: 1})
+                    let merger = audio.createChannelMerger(2);
+                    pan = audio.createStereoPanner();
+
+                    createLfo(.1, 100).connect(oscillator.frequency);
+                    createLfo(.2, 300).connect(filter.frequency);
+                    createLfo(.2,   1).connect(pan.pan);
+
+                    oscillator.connect(filter);
+                    filter.connect(gain);
+                    gain.connect(merger, 0, 0);
+                    merger.connect(pan);
+                    pan.connect(audio.destination);
+
+                    oscillator.start();
+                }
+                return channels === 1 ? gain : pan;
+            }
+
+            function soundOn() {
+                gain.gain.value = 1;
+            }
+
+            function soundOff() {
+                gain.gain.value = 0;
+            }
+
+            function bytesToHumanReadable(bytes) {
+                if (bytes < 1024) {
+                    return `${bytes} bytes`;
+                }
+                let kb = bytes / 1024;
+                if (kb < 1024) {
+                    return `${Math.floor(kb)} KB`;
+                }
+                return `${(kb / 1024).toFixed(2)} MB`;
+            }
+
+            function pushFile(uri, name) {
+                let a = document.createElement('a');
+                a.href = uri;
+                a.download = name;
+                a.click();
+            }
+
+            function show(e) {
+                e.style.display = 'inline-block';
+            }
+
+            function hide(e) {
+                e.style.display = 'none';
+            }
+
             recordMonoButton.onclick = () => start(1);
             recordStereoButton.onclick = () => start(2);
             pauseButton.onclick = () => pause();
@@ -113,12 +142,27 @@
     </head>
 
     <body>
-        <p>Click to generate some audio and record it:<p>
-        Filename: <input id='filename' value='recording.mp3'>
-        <button id='recordMonoButton'>Record Mono</button>
-        <button id='recordStereoButton'>Record Stereo</button>
-        <button id='pauseButton' style='display: none'>Pause Recording</button>
-        <button id='resumeButton' style='display: none'>Resume Recording</button>
-        <button id='stopButton' style='display: none'>Stop</button>
+        <div class='container'>
+            <p>Generate sample audio and record it:<p>
+            <button id='recordMonoButton'>Record Mono</button>
+            <button id='recordStereoButton'>Record Stereo</button>
+            <button id='pauseButton' style='display: none'>Pause Recording</button>
+            <button id='resumeButton' style='display: none'>Resume Recording</button>
+            <button id='stopButton' class='stop-button'>Stop</button>
+            <p id='recordedSize'></p>
+            <div><label>bitrate:</label> <input id='bitrate' value='196'></div>
+            <div><label>filename:</label> <input id='filename' value='recording.mp3'></div>
+        </div>
+        <style>
+            body { background: #eee; font-family: sans-serif; font-size: 1.2rem; }
+            .container { padding: 1rem; border-radius: .4rem; width: 21rem;
+                box-shadow: 0px 1px 3px #BBB, inset 0px 1px 0px #FFF, 0px 1px 0px #999;
+                margin-left: auto; margin-right: auto; }
+            label { display: inline-block; width: 5rem; margin-bottom: .4rem; }
+            .stop-button { display: none; animation: blinker 1s linear infinite; outline: 1px solid transparent; }
+            @keyframes blinker {
+              50% { box-shadow: 0 0 8px #FF0000; outline: 3px solid #FF000044; }
+            }
+        </style>
     </body>
 </html>

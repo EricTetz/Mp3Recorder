@@ -30,8 +30,13 @@ export class Mp3Recorder {
                 channelInterpretation: 'discrete',
             });
 
-            this.worker.onmessage = e =>
-                this.onComplete(new Blob(e.data, { type: 'audio/mp3' }));
+            this.worker.onmessage = e => {
+                if (e.data.recordedSize != null) {
+                    this.onRecordedSize?.(e.data.recordedSize);
+                } else if (e.data.finishedRecording) {
+                    this.onFinishedRecording?.(new Blob(e.data.finishedRecording, { type: 'audio/mp3' }));
+                }
+            }
 
             this.worklet.port.onmessage = e =>
                 this.worker.postMessage({ message: 'receivedChannelData', channelData: e.data });
@@ -54,13 +59,20 @@ export class Mp3Recorder {
         this.connected = this.inputNode.connect(this.worklet);
     }
 
+    async getRecordedSize() {
+        return new Promise((accept, reject) => {
+            this.onRecordedSize = accept;
+            this.worker.postMessage({message: 'getRecordedSize'});
+        });
+    }
+
     stop() {
         this.worker.postMessage({message: 'stop'});
         if (this.connected) {
             this.inputNode.disconnect(this.worklet);
         }
         return new Promise((accept, reject) => {
-            this.onComplete = accept;
+            this.onFinishedRecording = accept;
             this.worklet.port.postMessage({message: 'stop'});
         });
     }

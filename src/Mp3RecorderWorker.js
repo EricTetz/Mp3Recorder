@@ -16,6 +16,8 @@ onmessage = async (e) => {
         if (channelData[0].length == 9) {
             encodeAvailableData();
         }
+    } else if (e.data.message === 'getRecordedSize') {
+        postMessage({recordedSize: encoded.reduce((acc, elem) => acc + elem.length, 0)});
     } else if (e.data.message === 'init') {
         init(e.data.config);
     } else if (e.data.message === 'start') {
@@ -78,6 +80,6 @@ function encodeAvailableData() {
 function stop() {
     encodeAvailableData();
     encoded.push(new Int8Array(mp3Encoder.flush()));
-    postMessage(encoded);
+    postMessage({finishedRecording: encoded});
     resetBuffers();
 }
