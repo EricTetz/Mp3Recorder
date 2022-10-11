@@ -58,9 +58,6 @@ export class Mp3Recorder {
     }
 
     stop() {
-        if (!this.connected) {
-            throw new Error("not recording!");
-        }
         this.worker.postMessage({message: 'stop'});
         this._disconnectAudioWorklet();
         return new Promise((accept, reject) => {
