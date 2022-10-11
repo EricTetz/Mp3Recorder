@@ -5,11 +5,11 @@
         <script type='module'>
             import { Mp3Recorder } from './src/Mp3Recorder.mjs';
 
-            let recorder = new Mp3Recorder('src/Mp3RecorderWorker.js', 'src/Mp3RecorderWorklet.js');
+            let recorder = new Mp3Recorder();
             let gain;
             let pan;
             let updateTimer;
-            
+
             async function start(channels) {
                 let bitRate = Number(bitrate.value);
                 if (isNaN(bitRate)) {
@@ -25,8 +25,7 @@
 
                 showRecordedSize();
 
-                hide(recordMonoButton);
-                hide(recordStereoButton);
+                hide(recordButton);
                 show(pauseButton);
                 show(stopButton);
             }
@@ -62,8 +61,7 @@
                 hide(stopButton);
                 hide(pauseButton);
                 hide(resumeButton);
-                show(recordMonoButton);
-                show(recordStereoButton);
+                show(recordButton);
             }
 
             // we'll to pan a signal left to right to demonstrate stereo recording
@@ -80,7 +78,7 @@
 
                     let oscillator = new OscillatorNode(audio, {frequency: 110,  type: 'sawtooth'});
                     gain = new GainNode(audio, { gain: 0 });
-                    let filter = new BiquadFilterNode(audio, {type: 'lowpass', Q: 1})
+                    let filter = new BiquadFilterNode(audio, {type: 'lowpass', Q: 5})
                     let merger = audio.createChannelMerger(2);
                     pan = audio.createStereoPanner();
 
@@ -133,8 +131,7 @@
                 e.style.display = 'none';
             }
 
-            recordMonoButton.onclick = () => start(1);
-            recordStereoButton.onclick = () => start(2);
+            recordButton.onclick = () => start(monoRadio.checked ? 1 : 2);
             pauseButton.onclick = () => pause();
             resumeButton.onclick = () => resume();
             stopButton.onclick = () => stop();
@@ -142,23 +139,53 @@
     </head>
 
     <body>
-        <div class='container'>
-            <p>Generate sample audio and record it:<p>
-            <button id='recordMonoButton'>Record Mono</button>
-            <button id='recordStereoButton'>Record Stereo</button>
+        <div class='container demo'>
+            <h4>Demo for <a href='https://github.com/EricTetz/Mp3Recorder'>Mp3Recorder</a></h4>
+            <p>This will generate sample audio to record.<p>
+            <button id='recordButton'>Start Recording</button>
             <button id='pauseButton' style='display: none'>Pause Recording</button>
             <button id='resumeButton' style='display: none'>Resume Recording</button>
             <button id='stopButton' class='stop-button'>Stop</button>
-            <p id='recordedSize'></p>
-            <div><label>bitrate:</label> <input id='bitrate' value='196'></div>
-            <div><label>filename:</label> <input id='filename' value='recording.mp3'></div>
+            <span id='recordedSize'></span>
+            <fieldset>
+                <legend>Recording Settings</legend>
+                <label><input id='monoRadio'   type='radio' name='channels' value='1'>mono</label>
+                <label><input id='stereoRadio' type='radio' name='channels' value='2' checked>stereo</label>
+                <div><label>bitrate:</label> <input id='bitrate' value='196'></div>
+                <div><label>filename:</label> <input id='filename' value='recording.mp3'></div>
+            </fieldset>
         </div>
+
+        <div class='container'>
+            <h4>API overview</h4>
+            <pre>
+import { Mp3Recorder } from './src/Mp3Recorder.mjs';
+
+let recorder = new Mp3Recorder();
+
+await recorder.configure(inputAudioNode, channels, bitRate);
+
+recorder.start();
+
+recorder.pause();
+
+recorder.resume();
+
+let bytes = await recorder.getRecordedSize();
+
+let mp3 = await recorder.stop();
+            </pre>
+        </div>
+
         <style>
-            body { background: #eee; font-family: sans-serif; font-size: 1.2rem; }
-            .container { padding: 1rem; border-radius: .4rem; width: 21rem;
-                box-shadow: 0px 1px 3px #BBB, inset 0px 1px 0px #FFF, 0px 1px 0px #999;
-                margin-left: auto; margin-right: auto; }
+            body { background: #eee; font-family: sans-serif; }
+            .container { padding: 1rem; padding-top: .2rem; width: 21rem;
+                margin-bottom: 1rem; margin-left: auto; margin-right: auto;  }
+            .demo { border-radius: .4rem; box-shadow: 0px 1px 3px #BBB, inset 0px 1px 0px #FFF, 0px 1px 0px #999; user-select: none; }
+            fieldset { border: 1px solid #d3d3d3; border-radius: 5px; }
+            legend { font-size: .72rem; }
             label { display: inline-block; width: 5rem; margin-bottom: .4rem; }
+            #recordedSize { float: right; }
             .stop-button { display: none; animation: blinker 1s linear infinite; outline: 1px solid transparent; }
             @keyframes blinker {
               50% { box-shadow: 0 0 8px #FF0000; outline: 3px solid #FF000044; }

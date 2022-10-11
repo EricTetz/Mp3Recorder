@@ -6,35 +6,43 @@ Record web audio to an MP3 in mono or stereo.
 
 Supports all modern browsers.
 
-## Usage
+## API
 
 ```js
-    import { Mp3Recorder } from 'Mp3Recorder.mjs';
+    import { Mp3Recorder } from './src/Mp3Recorder.mjs';
 
-    let recorder = new Mp3Recorder('Mp3RecorderWorker.js', 'Mp3RecorderWorklet.js');
-    await recorder.configure(inputAudioNode, 2, 196);
+    let recorder = new Mp3Recorder();
+
+    await recorder.configure(inputAudioNode, channels, bitRate);
 
     recorder.start();
 
-    // wait a bit...
+    recorder.pause();
+
+    recorder.resume();
+
+    let bytes = await recorder.getRecordedSize();
 
     let mp3 = await recorder.stop();
 ```
 
-## API
+## Installation
 
-The code is in three parts:
+Copy the files in `src` into your project.
 
 * **Mp3RecorderWorklet.js**: tiny AudioWorkletProcessor that feeds raw audio to the worker.
 * **Mp3RecorderWorker.js**: encodes audio in real time (using [lamejs](https://github.com/zhuker/lamejs), inline in the file). We use a separate worker to avoid dropping frames during encoding (AudioWorkletProcessor has hard coded 128 byte buffer).
 * **Mp3Recorder.mjs**: coordinates worker threads and provides an API for them. This is what you use in your code. The other files are necessary evils because of the way web threading works.
 
-`Mp3Recorder(workerPath, workletPath)` :
+## API Details
 
-* `workerPath`: path to worker file (subject to vagaries of worker paths)
-* `workletPath`: path to worklet file (subject to vagaries of worklet paths)
+`Mp3Recorder()`
+
+You should only create one instance of Mp3Recorder to avoid proliferation of worker threads.
 
 `async configure(inputNode, channels, bitRate)`:
+
+This can be called as many times as you want to change the audio node being recorded or to reconfigure the encoder.
 
 * `inputNode`: the AudioNode whose output we'll record
 * `channels`: 1 or 2 (mono or stereo)

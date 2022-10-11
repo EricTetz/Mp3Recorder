@@ -1,17 +1,4 @@
 export class Mp3Recorder {
-    static workerPath = undefined;
-    static workletPath = undefined;
-
-    constructor(workerPath = 'Mp3RecorderWorker.js', workletPath = 'Mp3RecorderWorklet.js') {
-
-        if (Mp3Recorder.workerPath != null) {
-            throw new Error("Don't create more than one instance of Mp3Recorder.");
-        }
-
-        Mp3Recorder.workerPath = workerPath;
-        Mp3Recorder.workletPath = workletPath;
-    }
-
     async configure(inputNode, channels = 2, bitRate = 196) {
         if (channels < 1 || channels > 2) {
             throw new Error("Mp3Recorder only supports mono or stereo.");
@@ -21,9 +8,11 @@ export class Mp3Recorder {
 
         // do this here rather than the constructor because we need the audio context
         if (this.worker == null) {
-            this.worker = new Worker(Mp3Recorder.workerPath);
+            let workerPath  = new URL('./Mp3RecorderWorker.js', import.meta.url);
+            this.worker = new Worker(workerPath);
 
-            await inputNode.context.audioWorklet.addModule(`${Mp3Recorder.workletPath}?t=${Date.now()}`); // cache buster for Chrome
+            let workletPath = new URL('./Mp3RecorderWorklet.js', import.meta.url);
+            await inputNode.context.audioWorklet.addModule(workletPath);
             this.worklet = new AudioWorkletNode(inputNode.context, 'Mp3RecorderWorklet', {
                 inputChannelCount: [ 2 ], // works for mono or stereo
                 channelCountMode: 'explicit',
