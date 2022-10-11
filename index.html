@@ -25,6 +25,7 @@
 
                 showRecordedSize();
 
+                settings.disabled = true;
                 hide(recordButton);
                 show(pauseButton);
                 show(stopButton);
@@ -58,6 +59,7 @@
                 let uri = URL.createObjectURL(mp3);
                 pushFile(uri, filename.value || 'recording.mp3');
 
+                settings.disabled = false;
                 hide(stopButton);
                 hide(pauseButton);
                 hide(resumeButton);
@@ -147,7 +149,7 @@
             <button id='resumeButton' style='display: none'>Resume Recording</button>
             <button id='stopButton' class='stop-button'>Stop</button>
             <span id='recordedSize'></span>
-            <fieldset>
+            <fieldset id='settings'>
                 <legend>Recording Settings</legend>
                 <label><input id='monoRadio'   type='radio' name='channels' value='1'>mono</label>
                 <label><input id='stereoRadio' type='radio' name='channels' value='2' checked>stereo</label>

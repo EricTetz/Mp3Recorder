@@ -36,16 +36,18 @@ export class Mp3Recorder {
     }
 
     start() {
-        this.worker.postMessage({message: 'start'});
-        this.connected = this.inputNode.connect(this.worklet);
+        if (!this.connected) {
+            this.worker.postMessage({message: 'start'});
+            this._connectAudioWorklet();
+        }
     }
 
     pause() {
-        this.connected = this.inputNode.disconnect(this.worklet);
+        this._disconnectAudioWorklet();
     }
 
     resume() {
-        this.connected = this.inputNode.connect(this.worklet);
+        this._connectAudioWorklet();
     }
 
     async getRecordedSize() {
@@ -56,13 +58,26 @@ export class Mp3Recorder {
     }
 
     stop() {
-        this.worker.postMessage({message: 'stop'});
-        if (this.connected) {
-            this.inputNode.disconnect(this.worklet);
+        if (!this.connected) {
+            throw new Error("not recording!");
         }
+        this.worker.postMessage({message: 'stop'});
+        this._disconnectAudioWorklet();
         return new Promise((accept, reject) => {
             this.onFinishedRecording = accept;
             this.worklet.port.postMessage({message: 'stop'});
         });
+    }
+
+    _disconnectAudioWorklet() {
+        if (this.connected) {
+            this.connected = this.inputNode.disconnect(this.worklet);
+        }
+    }
+
+    _connectAudioWorklet() {
+        if (!this.connected) {
+            this.connected = this.inputNode.connect(this.worklet);
+        }
     }
 }
